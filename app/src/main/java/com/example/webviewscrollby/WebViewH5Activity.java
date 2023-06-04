@@ -2,6 +2,7 @@ package com.example.webviewscrollby;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -10,20 +11,17 @@ import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieSyncManager;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebBackForwardList;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import com.example.webviewscrollby.controller.ProgressBarController;
@@ -33,7 +31,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class WebViewH5Activity extends AppCompatActivity {
-    private String blackUrl = "about:blank";//浏览器空白页
+    private final String blackUrl = "about:blank";//浏览器空白页
     private MsWebView webView;
     private HideBarTimeTask hideBarTimeTask;
     private Button btn_gototop;
@@ -68,6 +66,7 @@ public class WebViewH5Activity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     private void initWebView() {
         btn_gototop = (Button) findViewById(R.id.btn_gototop);
         webView = (MsWebView) findViewById(R.id.webView);
@@ -143,8 +142,8 @@ public class WebViewH5Activity extends AppCompatActivity {
         }
     }
 
-    private ProgressBarController progressBarController = new ProgressBarController(new ProgressBarController.ControllerListener() {
-
+    private final ProgressBarController progressBarController = new ProgressBarController(
+        new ProgressBarController.ControllerListener() {
         @Override
         public void stop() {
             runTimer(500);
@@ -162,7 +161,6 @@ public class WebViewH5Activity extends AppCompatActivity {
             }
             stopTimer();
         }
-
     });
 
     class HideBarTimeTask extends TimerTask {
@@ -170,11 +168,11 @@ public class WebViewH5Activity extends AppCompatActivity {
         public void run() {
             Message msg = new Message();
             msg.what = 10000;
-            webviewHandler.sendMessage(msg);
+            mHandler.sendMessage(msg);
         }
     }
 
-    private Handler webviewHandler = new Handler() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -191,6 +189,7 @@ public class WebViewH5Activity extends AppCompatActivity {
             if (webView != null && webView.canGoBack() && checkBackUrl(blackUrl)) {
                 webView.goBack();
             } else {
+                assert webView != null;
                 webView.stopLoading();
                 finish();
             }
@@ -204,10 +203,7 @@ public class WebViewH5Activity extends AppCompatActivity {
         WebBackForwardList mWebBackForwardList = webView.copyBackForwardList();
         String backUrl = mWebBackForwardList.getItemAtIndex(mWebBackForwardList.getCurrentIndex() - 1).getUrl();
         //判断是否是空白页
-        if (backUrl != null && backUrl.equalsIgnoreCase(url)) {
-            return false;
-        }
-        return true;
+        return backUrl == null || !backUrl.equalsIgnoreCase(url);
     }
 
 
@@ -223,7 +219,7 @@ public class WebViewH5Activity extends AppCompatActivity {
         public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
             super.onReceivedError(view, errorCode, description, failingUrl);
 
-            if (failingUrl.equalsIgnoreCase(rootUrl) == false) {
+            if (!failingUrl.equalsIgnoreCase(rootUrl)) {
                 return;
             }
 
@@ -239,6 +235,7 @@ public class WebViewH5Activity extends AppCompatActivity {
             }, 500);
         }
 
+        @SuppressLint("WebViewClientOnReceivedSslError")
         @Override
         public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
             //忽略SSL证书错误检测,使用SslErrorHandler.proceed()来继续加载
